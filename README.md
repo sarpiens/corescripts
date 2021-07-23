@@ -1,7 +1,8 @@
 # corescripts
 This repository contains scripts used for performing variuos processing steps and analysis presented in the CSBJ paper.
 
-1)"Database_construction.html": contains a detailed explanation of the steps used to generate the enriched database.
+# 1)Database_construction.html 
+Contains a detailed explanation of the steps used to generate the enriched database.
 
 2)"multiqc_stats.py": script used to generated qc stats from multiqc reports.
 
