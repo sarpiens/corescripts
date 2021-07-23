@@ -1,0 +1,378 @@
+---
+title: "DBs Comparative"
+output: html_document
+---
+
+#Load libraries
+```{r}
+library(ggplot2)
+library(forcats)
+library(ggpubr)
+```
+
+#Load files
+```{r}
+#Metadata
+metadata=read.csv('./Data/metadata_all_def.csv',header = T, sep='\t')
+##Change United States for United\nStates
+metadata$country[metadata$country=="United States"]<-"United\nStates"
+metadata$host_lifestyle[metadata$host_lifestyle=="Periurban shantytown"]<-"Periurban\nshantytown"
+#Load data files for K2 Results
+nt_k2_results=read.csv('./Data/nt_K2_results.txt',header = T, sep='\t')
+ntE_k2_results=read.csv('./Data/nt_enrich-fMAG_K2_results.txt',header = T, sep='\t')
+#Load Bracken count tables
+nt_brack_table_SP=data.frame(t(read.csv('./Data/p_nt_SP_count_bracken.txt',sep='\t',row.names = 1)))
+nt_brack_table_GEN=data.frame(t(read.csv('./Data/p_nt_GEN_count_bracken.txt',sep='\t',row.names = 1)))
+ntE_brack_table_SP=data.frame(t(read.csv('./Data/p_nt_enrich_fMAG_SP_count_bracken.txt',sep='\t',row.names = 1)))
+ntE_brack_table_GEN=data.frame(t(read.csv('./Data/p_nt_enrich_fMAG_GEN_count_bracken.txt',sep='\t',row.names = 1)))
+```
+
+#K2 Results
+
+##Process tables
+```{r}
+##Process nt table
+#Process tables to get only tax level percentages
+nt_k2_results_taxp=nt_k2_results[c("Sample_Name", "Domain","Phylum","Class","Order","Family","Genus","Species")]
+nt_k2_results_taxp_m=reshape2::melt(nt_k2_results_taxp,id="Sample_Name")
+#Add colum with database name
+nt_k2_results_taxp_m$DataBase <- 'NT_DB'
+#Change additional name columns
+names(nt_k2_results_taxp_m)[names(nt_k2_results_taxp_m)=="variable"] <- "Taxon"
+names(nt_k2_results_taxp_m)[names(nt_k2_results_taxp_m)=="value"] <- "Percentage"
+
+##Process ntE table
+#Process tables to get only tax level percentages
+ntE_k2_results_taxp=ntE_k2_results[c("Sample_Name", "Domain","Phylum","Class","Order","Family","Genus","Species")]
+ntE_k2_results_taxp_m=reshape2::melt(ntE_k2_results_taxp,id="Sample_Name")
+#Add colum with database name
+ntE_k2_results_taxp_m$DataBase <- 'NT-MS-fMAG_DB'
+#Change additional name columns
+names(ntE_k2_results_taxp_m)[names(ntE_k2_results_taxp_m)=="variable"] <- "Taxon"
+names(ntE_k2_results_taxp_m)[names(ntE_k2_results_taxp_m)=="value"] <- "Percentage"
+
+##Combine both tables
+k2_tax_results=rbind(nt_k2_results_taxp_m,ntE_k2_results_taxp_m)
+```
+
+##Classification capacity by taxons
+```{r}
+#Create boxplot
+p1=ggplot(data=k2_tax_results, aes(x=DataBase, y=Percentage))+geom_boxplot(aes(fill=DataBase),outlier.colour ="red")
+#Format graph
+p1=p1+xlab("")+ylab("Reads assignment(%)")
+p1=p1+facet_wrap(~ factor(Taxon, levels = c("Domain","Phylum","Class","Order","Family","Genus","Species")) , 
+                 scales="free",ncol=7,as.table = FALSE)
+p1=p1+theme(axis.text.x = element_blank(),axis.ticks.x=element_blank())
+p1=p1+coord_cartesian(ylim = c(0, 100))+theme(strip.text.x = element_text(size = 11))
+#Add mean to graph
+p1=p1+stat_summary(aes(group=DataBase),fun=mean, geom="point", shape=25, size=2, color="black", fill="red")
+#Show result
+print(p1)
+```
+
+```{r}
+#Genus Stats
+k2_tax_results_GEN=subset(k2_tax_results, Taxon=="Genus")
+class_nt=k2_tax_results_GEN[k2_tax_results_GEN$DataBase=='NT_DB',]
+mean(class_nt$Percentage,na.rm=TRUE)
+sd(class_nt$Percentage,na.rm = TRUE)
+summary(class_nt$Percentage)
+
+class_nt_Ef=k2_tax_results_GEN[k2_tax_results_GEN$DataBase=='NT-MS-fMAG_DB',]
+mean(class_nt_Ef$Percentage,na.rm=TRUE)
+sd(class_nt_Ef$Percentage,na.rm = TRUE)
+summary(class_nt_Ef$Percentage)
+```
+
+```{r}
+#SP Stats
+k2_tax_results_SP=subset(k2_tax_results, Taxon=="Species")
+class_nt=k2_tax_results_SP[k2_tax_results_SP$DataBase=='NT_DB',]
+mean(class_nt$Percentage,na.rm=TRUE)
+sd(class_nt$Percentage,na.rm = TRUE)
+summary(class_nt$Percentage)
+
+class_nt_Ef=k2_tax_results_SP[k2_tax_results_SP$DataBase=='NT-MS-fMAG_DB',]
+mean(class_nt_Ef$Percentage,na.rm=TRUE)
+sd(class_nt_Ef$Percentage,na.rm = TRUE)
+summary(class_nt_Ef$Percentage)
+```
+
+##Classification capacity by metadata GENUS Level
+```{r}
+#Filter k2 results table
+k2_tax_results_GEN=subset(k2_tax_results, Taxon=="Genus")
+
+#Merge counts and metadata
+meta_cross=merge(metadata,k2_tax_results_GEN,by.x = "run_accession",by.y = "Sample_Name")
+
+#By Lifestyle
+#Create boxplot
+p2=ggplot(data=meta_cross, aes(x=DataBase, y=Percentage))+geom_boxplot(aes(fill=DataBase),outlier.colour ="red")
+#Format graph
+p2=p2+xlab("")+ylab("Reads assignment(%)")
+p2=p2+facet_wrap(~ host_lifestyle, scales="free",ncol=3)+theme(axis.text.x = element_blank(),axis.ticks.x=element_blank())
+p2=p2+coord_cartesian(ylim = c(0, 100))+theme(strip.text.x = element_text(size = 11))
+#Add mean to graph
+p2=p2+stat_summary(aes(group=DataBase),fun=mean, geom="point", shape=25, size=2, color="black", fill="red")
+#Show result
+print(p2)
+
+#By Country
+#Create boxplot
+p3=ggplot(data=meta_cross, aes(x=DataBase, y=Percentage))+geom_boxplot(aes(fill=DataBase),outlier.colour ="red")
+#Format graph
+p3=p3+xlab("")+ylab("Reads assignment(%)")
+p3=p3+facet_wrap(~ country, scales="free",ncol=6)+theme(axis.text.x = element_blank(),axis.ticks.x=element_blank())
+p3=p3+coord_cartesian(ylim = c(10, 100))+theme(strip.text.x = element_text(size = 11))
+#Add mean to graph
+p3=p3+stat_summary(aes(group=DataBase),fun=mean, geom="point", shape=25, size=2, color="black", fill="red")
+#Show result
+print(p3)
+```
+
+##Classification capacity by metadata SP Level
+```{r}
+#Filter k2 results table
+k2_tax_results_SP=subset(k2_tax_results, Taxon=="Species")
+
+#Merge counts and metadata
+meta_cross=merge(metadata,k2_tax_results_SP,by.x = "run_accession",by.y = "Sample_Name")
+
+#By Lifestyle
+#Create boxplot
+p4=ggplot(data=meta_cross, aes(x=DataBase, y=Percentage))+geom_boxplot(aes(fill=DataBase),outlier.colour ="red")
+#Format graph
+p4=p4+xlab("")+ylab("Reads assignment(%)")
+p4=p4+facet_wrap(~ host_lifestyle, scales="free",ncol=3)+theme(axis.text.x = element_blank(),axis.ticks.x=element_blank())
+p4=p4+coord_cartesian(ylim = c(0, 100))+theme(strip.text.x = element_text(size = 11))
+#Add mean to graph
+p4=p4+stat_summary(aes(group=DataBase),fun=mean, geom="point", shape=25, size=2, color="black", fill="red")
+#Show result
+print(p4)
+
+#By Country
+#Create boxplot
+p5=ggplot(data=meta_cross, aes(x=DataBase, y=Percentage))+geom_boxplot(aes(fill=DataBase),outlier.colour ="red")
+#Format graph
+p5=p5+xlab("")+ylab("Reads assignment(%)")
+p5=p5+facet_wrap(~ country, scales="free",ncol=6)+theme(axis.text.x = element_blank(),axis.ticks.x=element_blank())
+p5=p5+coord_cartesian(ylim = c(10, 100))+theme(strip.text.x = element_text(size = 11))
+#Add mean to graph
+p5=p5+stat_summary(aes(group=DataBase),fun=mean, geom="point", shape=25, size=2, color="black", fill="red")
+#Show result
+print(p5)
+```
+
+##Combine all graphs in one K2 results plot/ Supplementary Figure 3
+```{r}
+#Add titles
+p1=p1+ggtitle("Kraken 2 Taxon Level Results")
+p2=p2+ggtitle("Kraken 2 Genus Level")
+p4=p4+ggtitle("Kraken 2 Species Level")
+#Arrange figures
+sfigure3 <- ggarrange(p1,ggarrange(p2,p4,labels = c("B","C"),ncol = 2,legend="none",heights = c(0.5),widths=c(0.5)),
+                        ggarrange(p3,p5,labels = c("",""),ncol = 2,legend="none",heights = c(0.5),widths=c(0.5)),
+                        labels = c("A","",""),nrow =3 ,common.legend = TRUE,legend = "bottom")
+ggsave("./Supplementary/Supplementary_Figure3.pdf",plot=sfigure3,units = "mm",height = 120, width = 200,scale = 2,dpi=600)
+```
+
+#Bracken Results
+
+##Get total reads per table
+```{r}
+#Get total reads per sample table(we cut also use ntE_k2_results)
+total_count_samples=nt_k2_results[c("Sample_Name","Total")]
+```
+
+##Bracken results at GENUS Level
+
+###Process tables
+```{r}
+#Process count tables to classified data
+
+#nt bracken GEN count table
+##Get classified counts per sample
+nt_brack_counts_GEN=as.data.frame(apply(nt_brack_table_GEN, 2, function(x) sum(x)))
+names(nt_brack_counts_GEN)[1]<-"Class_Counts"
+##Merge with total counts per sample
+nt_brack_GEN=merge(nt_brack_counts_GEN,total_count_samples,by.x = "row.names",by.y = "Sample_Name")
+##Get percentage of classified reads per sample
+nt_brack_GEN$Percentage <- as.vector(t(nt_brack_GEN["Class_Counts"]/nt_brack_GEN["Total"]*100))
+##Add colum with database name
+nt_brack_GEN$DataBase <- 'NT_DB'
+
+#ntE bracken GEN count table
+##Get classified counts per sample
+ntE_brack_counts_GEN=as.data.frame(apply(ntE_brack_table_GEN, 2, function(x) sum(x)))
+names(ntE_brack_counts_GEN)[1]<-"Class_Counts"
+##Merge with total counts per sample
+ntE_brack_GEN=merge(ntE_brack_counts_GEN,total_count_samples,by.x = "row.names",by.y = "Sample_Name")
+##Get percentage of classified reads per sample
+ntE_brack_GEN$Percentage <- as.vector(t(ntE_brack_GEN["Class_Counts"]/ntE_brack_GEN["Total"]*100))
+##Add colum with database name
+ntE_brack_GEN$DataBase <- 'NT-MS-fMAG_DB'
+
+##Combine both tables
+brack_GEN_results=rbind(nt_brack_GEN,ntE_brack_GEN)
+```
+
+###General Classification capacity for all samples
+```{r}
+#Create boxplot
+p6=ggplot(data=brack_GEN_results, aes(x=DataBase, y=Percentage))+geom_boxplot(aes(fill=DataBase),outlier.colour ="red")
+#Format graph
+p6=p6+xlab("")+ylab("Reads assignment(%)")
+p6=p6+theme(axis.text.x = element_blank(),axis.ticks.x=element_blank())
+p6=p6+coord_cartesian(ylim = c(0, 100))
+#Add mean to graph
+p6=p6+stat_summary(aes(group=DataBase),fun=mean, geom="point", shape=25, size=2, color="black", fill="red")
+#Show result
+print(p6)
+```
+
+```{r}
+class_nt=brack_GEN_results[brack_GEN_results$DataBase=='NT_DB',]
+mean(class_nt$Percentage,na.rm=TRUE)
+
+class_nt=brack_GEN_results[brack_GEN_results$DataBase=='NT-MS-fMAG_DB',]
+mean(class_nt$Percentage,na.rm=TRUE)
+```
+
+
+###Classification capacity by metadata GENUS Level
+```{r}
+#Merge counts and metadata
+meta_cross=merge(metadata,brack_GEN_results,by.x = "run_accession",by.y = "Row.names")
+
+#By Lifestyle
+#Create boxplot
+p7=ggplot(data=meta_cross, aes(x=DataBase, y=Percentage))+geom_boxplot(aes(fill=DataBase),outlier.colour ="red")
+#Format graph
+p7=p7+xlab("")+ylab("Reads assignment(%)")
+p7=p7+facet_wrap(~ host_lifestyle, scales="free",ncol=3)+theme(axis.text.x = element_blank(),axis.ticks.x=element_blank())
+p7=p7+coord_cartesian(ylim = c(0, 100))+theme(strip.text.x = element_text(size = 11))
+#Add mean to graph
+p7=p7+stat_summary(aes(group=DataBase),fun=mean, geom="point", shape=25, size=2, color="black", fill="red")
+#Show result
+print(p7)
+
+#By Country
+#Create boxplot
+p8=ggplot(data=meta_cross, aes(x=DataBase, y=Percentage))+geom_boxplot(aes(fill=DataBase),outlier.colour ="red")
+#Format graph
+p8=p8+xlab("")+ylab("Reads assignment(%)")
+p8=p8+facet_wrap(~ country, scales="free_y")+theme(axis.text.x = element_blank(),axis.ticks.x=element_blank())
+p8=p8+coord_cartesian(ylim = c(10, 100))+theme(strip.text.x = element_text(size = 11))
+#Add mean to graph
+p8=p8+stat_summary(aes(group=DataBase),fun=mean, geom="point", shape=25, size=2, color="black", fill="red")
+#Show result
+print(p8)
+```
+
+##Bracken results at SP Level
+
+###Process tables
+```{r}
+#Process count tables to classified data
+
+#nt bracken GEN count table
+##Get classified counts per sample
+nt_brack_counts_SP=as.data.frame(apply(nt_brack_table_SP, 2, function(x) sum(x)))
+names(nt_brack_counts_SP)[1]<-"Class_Counts"
+##Merge with total counts per sample
+nt_brack_SP=merge(nt_brack_counts_SP,total_count_samples,by.x = "row.names",by.y = "Sample_Name")
+##Get percentage of classified reads per sample
+nt_brack_SP$Percentage <- as.vector(t(nt_brack_SP["Class_Counts"]/nt_brack_SP["Total"]*100))
+##Add colum with database name
+nt_brack_SP$DataBase <- 'NT_DB'
+
+#ntE bracken GEN count table
+##Get classified counts per sample
+ntE_brack_counts_SP=as.data.frame(apply(ntE_brack_table_SP, 2, function(x) sum(x)))
+names(ntE_brack_counts_SP)[1]<-"Class_Counts"
+##Merge with total counts per sample
+ntE_brack_SP=merge(ntE_brack_counts_SP,total_count_samples,by.x = "row.names",by.y = "Sample_Name")
+##Get percentage of classified reads per sample
+ntE_brack_SP$Percentage <- as.vector(t(ntE_brack_SP["Class_Counts"]/ntE_brack_SP["Total"]*100))
+##Add colum with database name
+ntE_brack_SP$DataBase <- 'NT-MS-fMAG_DB'
+
+##Combine both tables
+brack_SP_results=rbind(nt_brack_SP,ntE_brack_SP)
+```
+
+###General Classification capacity for all samples
+```{r}
+#Create boxplot
+p9=ggplot(data=brack_SP_results, aes(x=DataBase, y=Percentage))+geom_boxplot(aes(fill=DataBase),outlier.colour ="red")
+#Format graph
+p9=p9+xlab("")+ylab("Reads assignment(%)")
+p9=p9+theme(axis.text.x = element_blank(),axis.ticks.x=element_blank())
+p9=p9+coord_cartesian(ylim = c(0, 100))
+#Add mean to graph
+p9=p9+stat_summary(aes(group=DataBase),fun=mean, geom="point", shape=25, size=2, color="black", fill="red")
+#Show result
+print(p9)
+```
+
+```{r}
+class_nt=brack_SP_results[brack_SP_results$DataBase=='NT_DB',]
+mean(class_nt$Percentage,na.rm=TRUE)
+
+class_nt=brack_SP_results[brack_SP_results$DataBase=='NT-MS-fMAG_DB',]
+mean(class_nt$Percentage,na.rm=TRUE)
+```
+
+###Classification capacity by metadata SP Level
+```{r}
+#Merge counts and metadata
+meta_cross=merge(metadata,brack_SP_results,by.x = "run_accession",by.y = "Row.names")
+
+#By Lifestyle
+#Create boxplot
+pA=ggplot(data=meta_cross, aes(x=DataBase, y=Percentage))+geom_boxplot(aes(fill=DataBase),outlier.colour ="red")
+#Format graph
+pA=pA+xlab("")+ylab("Reads assignment(%)")
+pA=pA+facet_wrap(~ host_lifestyle, scales="free",ncol=3)+theme(axis.text.x = element_blank(),axis.ticks.x=element_blank())
+pA=pA+coord_cartesian(ylim = c(0, 100))+theme(strip.text.x = element_text(size = 11))
+#Add mean to graph
+pA=pA+stat_summary(aes(group=DataBase),fun=mean, geom="point", shape=25, size=2, color="black", fill="red")
+#Show result
+print(pA)
+
+#By Country
+#Create boxplot
+pB=ggplot(data=meta_cross, aes(x=DataBase, y=Percentage))+geom_boxplot(aes(fill=DataBase),outlier.colour ="red")
+#Format graph
+pB=pB+xlab("")+ylab("Reads assignment(%)")
+pB=pB+facet_wrap(~ country, scales="free_y")+theme(axis.text.x = element_blank(),axis.ticks.x=element_blank())
+pB=pB+coord_cartesian(ylim = c(10, 100))+theme(strip.text.x = element_text(size = 11))
+#Add mean to graph
+pB=pB+stat_summary(aes(group=DataBase),fun=mean, geom="point", shape=25, size=2, color="black", fill="red")
+#Show result
+print(pB)
+```
+
+##Combine country and life_style metadata boxplots / Figure 1
+```{r}
+#Add titles for p6 and p9
+p6=p6+ggtitle("Bracken Genus Level")
+p9=p9+ggtitle("Bracken Species Level")
+#Arrange figures
+figure1 <- ggarrange(ggarrange(p6,p9,labels = c("A","B"),ncol = 2,legend="none",heights = c(0.5),widths=c(0.5)),
+                        ggarrange(p7,pA,labels = c("",""),ncol = 2,legend="none",heights = c(0.5),widths=c(0.5)),
+                        ggarrange(p8,pB,labels = c("",""),ncol = 2,legend="bottom",common.legend = TRUE,heights = c(0.5),widths=c(0.5)),
+                        labels = c("","",""),nrow =3 ,common.legend = TRUE,legend = "bottom",heights = c(0.5,0.5,1))
+ggsave("./Figures/Figure1.pdf",plot=figure1,units = "mm",height = 210, width = 195,scale = 1,dpi=600)
+```
+
+
+
+
+
+
+
+
+
