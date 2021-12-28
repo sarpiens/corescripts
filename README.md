@@ -2,8 +2,7 @@
 This repository contains scripts used for performing variuos processing steps and analysis presented in the CSBJ paper.
 
 # 1)Scripts used in Databases construction: 
-filterN_seqs.sh, accession2taxid.R and check_seq2taxid_accession.py
-A detailed description can be found in the supplementary material of the publication.
+filterN_seqs.sh, accession2taxid.R and check_seq2taxid_accession.py; A detailed description can be found in the supplementary material of the publication.
 
 # 2)multiqc_stats.py
 Script used to generated some qc stats from multiqc reports.
