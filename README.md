@@ -7,7 +7,7 @@ Piquer-Esteban, S., Ruiz-Ruiz, S., Arnau, V., Diaz, W., & Moya, A. (2021). Explo
 filterN_seqs.sh, accession2taxid.R and check_seq2taxid_accession.py; A detailed description can be found in the supplementary material of the publication.
 
 # 2.multiqc_stats.py
-Script used to generated some qc stats from multiqc reports.
+Script used to generate some qc stats from multiqc reports.
 
 # 3.process_counts_K2.py
 Script used to generate specific taxon counts of interest from Kraken2 reports for databases comparison.
