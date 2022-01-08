@@ -1,7 +1,7 @@
 # corescripts
 This repository contains scripts used for performing variuos processing steps and analysis presented in:
 
-Piquer-Esteban, S., Ruiz-Ruiz, S., Arnau, V., Diaz, W., & Moya, A. (2021). Exploring the universal healthy human gut microbiota around the World. Computational and Structural Biotechnology Journal.https://doi.org/10.1016/j.csbj.2021.12.035
+Piquer-Esteban, S., Ruiz-Ruiz, S., Arnau, V., Diaz, W., & Moya, A. (2022). Exploring the universal healthy human gut microbiota around the World. Computational and Structural Biotechnology Journal, 20:421-433.https://doi.org/10.1016/j.csbj.2021.12.035
 
 # 1.Scripts used in Databases construction: 
 filterN_seqs.sh, accession2taxid.R and check_seq2taxid_accession.py; A detailed description can be found in the supplementary material of the publication.
